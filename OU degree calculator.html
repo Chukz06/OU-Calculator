@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OU degree classification calculator</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f4f5f8; --card:#ffffff; --ink:#14213d; --muted:#5b6478; --line:#dde1ea;
+  --accent:#1f4fd8; --accent-ink:#ffffff; --warn:#8a5200; --warn-bg:#fff1d0;
+  --b1:#157347; --b2:#2f7fd1; --b3:#c98a00; --b4:#b23b3b; --shadow:0 4px 14px rgba(20,33,61,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1320; --card:#171e30; --ink:#e8ecf6; --muted:#9aa5bf; --line:#2b3550;
+    --accent:#6b93ff; --accent-ink:#0e1320; --warn:#f0b74a; --warn-bg:#3a2d10;
+    --b1:#3ecb8a; --b2:#5aa2f0; --b3:#e0a82e; --b4:#e06b6b; --shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1320; --card:#171e30; --ink:#e8ecf6; --muted:#9aa5bf; --line:#2b3550;
+  --accent:#6b93ff; --accent-ink:#0e1320; --warn:#f0b74a; --warn-bg:#3a2d10;
+  --b1:#3ecb8a; --b2:#5aa2f0; --b3:#e0a82e; --b4:#e06b6b; --shadow:0 4px 14px rgba(0,0,0,.4);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+main{max-width:520px;margin:0 auto;padding:16px max(14px,env(safe-area-inset-left,0px)) 40px max(14px,env(safe-area-inset-right,0px))}
+h1{font:700 1.4rem/1.2 Georgia,"Iowan Old Style","Palatino Linotype",serif;margin:4px 0 4px}
+.sub{margin:0 0 14px;color:var(--muted);font-size:.9rem}
+
+/* sticky result */
+.result{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 10px;margin-bottom:14px;box-shadow:var(--shadow)}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.class{font:700 1.25rem/1.2 Georgia,"Iowan Old Style","Palatino Linotype",serif}
+.band-1{color:var(--b1)}.band-2{color:var(--b2)}.band-3{color:var(--b3)}.band-4{color:var(--b4)}
+.score{font-size:.85rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.score b{color:var(--ink);font-size:1.05rem}
+.scale{position:relative;margin:12px 0 4px}
+.bar{height:8px;border-radius:4px;overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.pin{position:absolute;top:-4px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--card)}
+.ticks{position:relative;height:16px;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ticks i{position:absolute;top:0;font-style:normal;transform:translateX(-50%);white-space:nowrap}
+.ticks i:first-child{transform:none}
+.ticks i:last-child{transform:translateX(-100%)}
+.note{margin:6px 0 0;font-size:.8rem;line-height:1.35;color:var(--muted)}
+.note.warn{color:var(--warn);background:var(--warn-bg);padding:6px 8px;border-radius:6px}
+.note.ok{color:var(--ink)}
+
+/* module groups */
+.group{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 14px;margin-bottom:12px}
+.group h2{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 0 2px;font-weight:700}
+.group h2 span{text-transform:none;letter-spacing:0;font-weight:500}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.lbl{min-width:0}
+.lbl b{display:block;font-weight:600;font-size:.95rem;white-space:nowrap}
+.lbl small{white-space:nowrap;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
+.grades{display:grid;grid-template-columns:repeat(4,minmax(38px,46px));gap:5px;flex:none}
+.grades button{font:600 1rem system-ui,sans-serif;height:44px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;padding:0}
+.grades button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.grades button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+@media (max-width:360px){.grades{grid-template-columns:repeat(4,36px);gap:4px}.lbl b{font-size:.9rem}.lbl small{font-size:.74rem}.group{padding:6px 12px}}
+.grades button{touch-action:manipulation;-webkit-appearance:none;appearance:none}
+@media (max-height:520px){.result{position:static}}
+@media (min-width:600px){main{padding-top:28px}}
+details{font-size:.85rem;color:var(--muted);margin-top:4px;padding:0 2px}
+summary{cursor:pointer;color:var(--ink);font-weight:600;padding:6px 0}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:6px 0;font-size:.8rem;min-width:420px}
+th,td{text-align:left;padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+</style>
+</head>
+<body>
+<main>
+  <h1>Degree classification calculator</h1>
+  <p class="sub">Tap a grade for each module. 1 is the best, 4 is the lowest pass.</p>
+
+  <section class="result" aria-live="polite">
+    <div class="top">
+      <div class="class" id="cls">–</div>
+      <div class="score">Score <b id="score">–</b></div>
+    </div>
+    <div class="scale">
+      <div class="bar" id="bar"></div>
+      <div class="pin" id="pin"></div>
+    </div>
+    <div class="ticks" id="ticks"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <div class="group" id="g2"><h2>Level 2</h2></div>
+  <div class="group" id="g3"><h2>Level 3 <span>(double weighted)</span></h2></div>
+
+  <details>
+    <summary>How this is calculated</summary>
+    <p>Level 2 module score = credits × grade. Level 3 module score = credits × grade × 2. Add all six scores together; lower is better. A borderline score is promoted one class if you have 60 Level 3 credits at the required grade or better.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Class</th><th>Score band</th><th>Borderline</th></tr></thead>
+        <tbody>
+          <tr><td>First</td><td>360 to 630</td><td>–</td></tr>
+          <tr><td>2:1</td><td>631 to 900</td><td>631 to 690: needs 60 L3 credits at Grade 1 for First</td></tr>
+          <tr><td>2:2</td><td>901 to 1170</td><td>901 to 960: needs 60 L3 credits at Grade 1 or 2 for 2:1</td></tr>
+          <tr><td>Third</td><td>1171 to 1440</td><td>1171 to 1230: needs 60 L3 credits at Grade 1, 2 or 3 for 2:2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</main>
+
+<script>
+(function(){
+  var BANDS=[
+    {name:"First Class",lo:360,hi:630,cls:"band-1",col:"var(--b1)",bl:[631,690],needText:"Grade 1",need:1},
+    {name:"Upper Second (2:1)",lo:631,hi:900,cls:"band-2",col:"var(--b2)",bl:[901,960],needText:"Grade 1 or 2",need:2},
+    {name:"Lower Second (2:2)",lo:901,hi:1170,cls:"band-3",col:"var(--b3)",bl:[1171,1230],needText:"Grade 1, 2 or 3",need:3},
+    {name:"Third Class",lo:1171,hi:1440,cls:"band-4",col:"var(--b4)",bl:null}
+  ];
+  var MODS=[
+    {name:"30 credits",tag:"(a) · ",level:2,cr:30},
+    {name:"30 credits",tag:"(b) · ",level:2,cr:30},
+    {name:"60 credits",level:2,cr:60},
+    {name:"30 credits",tag:"(a) · ",level:3,cr:30},
+    {name:"30 credits",tag:"(b) · ",level:3,cr:30},
+    {name:"60 credits",level:3,cr:60}
+  ];
+  var state=[2,2,2,2,2,2];
+  try{var s=JSON.parse(localStorage.getItem("ou-calc2")||"null");
+      if(Array.isArray(s)&&s.length===6&&s.every(function(n){return n>=1&&n<=4;}))state=s;}catch(e){}
+  function save(){try{localStorage.setItem("ou-calc2",JSON.stringify(state));}catch(e){}}
+
+  MODS.forEach(function(m,i){
+    var r=document.createElement("div");r.className="row";
+    r.innerHTML='<div class="lbl"><b>'+m.name+'</b><small id="ms'+i+'"></small></div><div class="grades" role="group" aria-label="Level '+m.level+', '+m.name+' '+(m.tag?m.tag.replace(/[^ab]/g,""):"")+', grade"></div>';
+    var g=r.querySelector(".grades");
+    [1,2,3,4].forEach(function(n){
+      var b=document.createElement("button");b.type="button";
+      b.dataset.i=i;b.dataset.g=n;b.textContent=n;
+      b.setAttribute("aria-label","Grade "+n);
+      b.addEventListener("click",function(){state[i]=n;save();render();});
+      g.appendChild(b);
+    });
+    document.getElementById(m.level===2?"g2":"g3").appendChild(r);
+  });
+
+  var MIN=360,MAX=1440,SPAN=MAX-MIN;
+  var bar=document.getElementById("bar"),pin=document.getElementById("pin");
+  BANDS.forEach(function(b){
+    var sp=document.createElement("span");
+    sp.style.width=((b.hi-b.lo+1)/(SPAN+1)*100)+"%";
+    sp.style.background=b.col;bar.appendChild(sp);
+  });
+  var ticks=document.getElementById("ticks");
+  [360,631,901,1171,1440].forEach(function(v){
+    var i=document.createElement("i");i.textContent=v;i.style.left=((v-MIN)/SPAN*100)+"%";ticks.appendChild(i);
+  });
+
+  function render(){
+    var total=0;
+    MODS.forEach(function(m,i){
+      var sc=m.cr*state[i]*(m.level===3?2:1);
+      total+=sc;
+      document.getElementById("ms"+i).textContent=(m.tag||"")+"Score "+sc;
+    });
+    document.querySelectorAll(".grades button").forEach(function(b){
+      b.setAttribute("aria-pressed",String(state[+b.dataset.i]===+b.dataset.g));
+    });
+
+    var bi=0;
+    for(var k=0;k<BANDS.length;k++){if(total>=BANDS[k].lo&&total<=BANDS[k].hi){bi=k;break;}}
+    var result=BANDS[bi],note="",noteCls="note",bl=null;
+    for(var j=1;j<BANDS.length;j++){
+      var up=BANDS[j-1];
+      if(up.bl&&total>=up.bl[0]&&total<=up.bl[1]){bl={up:up,lower:BANDS[j]};break;}
+    }
+    if(bl){
+      var l3=0;
+      MODS.forEach(function(m,i){if(m.level===3&&state[i]<=bl.up.need)l3+=m.cr;});
+      if(l3>=60){
+        result=bl.up;noteCls="note ok";
+        note="Borderline, promoted: you have "+l3+" Level 3 credits at "+bl.up.needText+".";
+      }else{
+        result=bl.lower;noteCls="note warn";
+        note="Borderline, not promoted: needs 60 Level 3 credits at "+bl.up.needText+" (you have "+l3+").";
+      }
+    }else{
+      note="Not borderline, so the score band decides.";
+    }
+    document.getElementById("score").textContent=total;
+    var c=document.getElementById("cls");c.textContent=result.name;c.className="class "+result.cls;
+    var n=document.getElementById("note");n.textContent=note;n.className=noteCls;
+    pin.style.left=((total-MIN)/SPAN*100)+"%";
+  }
+  render();
+})();
+</script>
+</body>
+</html>
